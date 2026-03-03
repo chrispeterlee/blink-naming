@@ -1,15 +1,14 @@
-import { getStore } from "@netlify/blobs";
-export default async (req) => {
-  const url = new URL(req.url);
-  const key = url.searchParams.get("key");
-  if (!key) return new Response(JSON.stringify({ error: "missing key" }), { status: 400 });
+const { getStore } = require("@netlify/blobs");
+
+exports.handler = async (event) => {
+  const key = event.queryStringParameters && event.queryStringParameters.key;
+  if (!key) return { statusCode: 400, body: JSON.stringify({ error: "missing key" }) };
   try {
     const store = getStore("blink-naming");
     const value = await store.get(key);
-    if (value === null) return new Response(JSON.stringify(null), { status: 200 });
-    return new Response(JSON.stringify({ key, value }), { status: 200 });
+    if (value === null) return { statusCode: 200, body: JSON.stringify(null) };
+    return { statusCode: 200, body: JSON.stringify({ key, value }) };
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };
-export const config = { path: "/api/storage-get" };

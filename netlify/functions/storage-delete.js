@@ -1,14 +1,13 @@
-import { getStore } from "@netlify/blobs";
-export default async (req) => {
-  const url = new URL(req.url);
-  const key = url.searchParams.get("key");
-  if (!key) return new Response(JSON.stringify({ error: "missing key" }), { status: 400 });
+const { getStore } = require("@netlify/blobs");
+
+exports.handler = async (event) => {
   try {
+    const { key } = JSON.parse(event.body || "{}");
+    if (!key) return { statusCode: 400, body: JSON.stringify({ error: "missing key" }) };
     const store = getStore("blink-naming");
     await store.delete(key);
-    return new Response(JSON.stringify({ key, deleted: true }), { status: 200 });
+    return { statusCode: 200, body: JSON.stringify({ key, deleted: true }) };
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };
-export const config = { path: "/api/storage-delete" };
