@@ -59,17 +59,17 @@ function DurPick({onChange}) {
   );
 }
 
-export default function App() {
+export default function App({ currentUser = "", isAdmin = false }) {
   const [tl,setTl]=useState(null);
   const [subs,setSubs]=useState([]);
   const [allV,setAllV]=useState([]);
   const [myV,setMyV]=useState({});
-  const [vname,setVname]=useState("");
-  const [form,setForm]=useState({name:"",who:"",why:""});
+  const [vname,setVname]=useState(currentUser);
+  const [form,setForm]=useState({name:"",who:currentUser,why:""});
   const [subDone,setSubDone]=useState(false);
   const [voteDone,setVoteDone]=useState(false);
   const [admin,setAdmin]=useState(false);
-  const [unlocked,setUnlocked]=useState(false);
+  const [unlocked,setUnlocked]=useState(isAdmin); // auto-unlock for admin
   const [pass,setPass]=useState("");
   const [reveal,setReveal]=useState(false);
   const [toast,setToast]=useState(null);
@@ -89,8 +89,19 @@ export default function App() {
       try {
         const a=await window.storage.get(SK_TIMELINE); if(a) setTl(JSON.parse(a.value));
         const b=await window.storage.get(SK_SUBMISSIONS); if(b) setSubs(JSON.parse(b.value));
-        const c=await window.storage.get(SK_VOTES); if(c) setAllV(JSON.parse(c.value));
+        const c=await window.storage.get(SK_VOTES); if(c) {
+          const votes = JSON.parse(c.value);
+          setAllV(votes);
+          // Check if this user already voted
+          const myPriorVote = votes.find(v => v.voter === currentUser);
+          if (myPriorVote) setVoteDone(true);
+        }
         const d=await window.storage.get(SK_REVEAL); if(d) setReveal(JSON.parse(d.value));
+        // Check if user already submitted
+        const b2=await window.storage.get(SK_SUBMISSIONS); if(b2) {
+          const existingSubs = JSON.parse(b2.value);
+          if (existingSubs.some(s => s.who === currentUser)) setSubDone(true);
+        }
       } catch(e){}
       setLoading(false);
     })();
@@ -123,12 +134,13 @@ export default function App() {
   };
 
   const submit = async () => {
-    if(!form.name.trim()||!form.who.trim()||!form.why.trim()){ toast2("Fill in all fields","err"); return; }
+    if(!form.name.trim()||!form.why.trim()){ toast2("Fill in all fields","err"); return; }
     if(form.why.split(/\s+/).filter(Boolean).length>60){ toast2("Max 50 words please","err"); return; }
-    const ns={id:Date.now(),...form};
+    if(subs.some(s => s.who === currentUser)){ toast2("You have already submitted a name!","err"); return; }
+    const ns={id:Date.now(),name:form.name,who:currentUser,why:form.why};
     const u=[...subs,ns]; setSubs(u); await save(SK_SUBMISSIONS,u);
     setSubDone(true); toast2("Submitted! 🎉");
-    setForm({name:"",who:"",why:""});
+    setForm({name:"",who:currentUser,why:""});
   };
 
   const medal = (sid,m) => {
@@ -141,9 +153,10 @@ export default function App() {
   };
 
   const vote = async () => {
-    if(!vname.trim()){ toast2("Enter your name","err"); return; }
     if(Object.keys(myV).length<3){ toast2("Assign all 3 medals","err"); return; }
-    const e={voter:vname,votes:myV,ts:new Date().toISOString()};
+    // Prevent duplicate votes
+    if(allV.some(v => v.voter === currentUser)){ toast2("You've already voted!","err"); return; }
+    const e={voter:currentUser,votes:myV,ts:new Date().toISOString()};
     const u=[...allV,e]; setAllV(u); await save(SK_VOTES,u);
     setVoteDone(true); toast2("Votes recorded! 🏅");
   };
@@ -203,9 +216,14 @@ export default function App() {
               </div>
               <span style={{color:"rgba(255,255,255,0.4)",fontSize:12,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase"}}>Blink Parametric</span>
             </div>
-            <button onClick={()=>setAdmin(!admin)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"rgba(255,255,255,0.5)",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-              {admin?"✕ Close":"⚙️ Admin"}
-            </button>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{color:"rgba(255,255,255,0.3)",fontSize:12,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser}</span>
+              {isAdmin && (
+                <button onClick={()=>setAdmin(!admin)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"rgba(255,255,255,0.5)",borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  {admin?"✕ Close":"⚙️ Admin"}
+                </button>
+              )}
+            </div>
           </div>
           <h1 style={{fontFamily:"Georgia,serif",fontSize:"clamp(24px,5vw,38px)",fontWeight:700,color:"white",margin:"0 0 6px",lineHeight:1.15}}>Name Our New Product 🔍</h1>
           <p style={{color:"rgba(255,255,255,0.5)",fontSize:15,margin:"0 0 20px",lineHeight:1.5}}>
@@ -306,12 +324,11 @@ export default function App() {
             {!subDone ? (
               <div className="card" style={{marginBottom:24}}>
                 <h2 style={{margin:"0 0 4px",fontSize:20,fontWeight:700,color:BD}}>Submit a Name</h2>
-                <p style={{color:"#6B7A99",margin:"0 0 20px",fontSize:14}}>What should we call it? Make your case. <span style={{color:"#D97706",fontWeight:600}}>Your name will be visible to admins and may be revealed to all voters.</span></p>
+                <p style={{color:"#6B7A99",margin:"0 0 20px",fontSize:14}}>
+                  Submitting as <strong style={{color:BD}}>{currentUser}</strong>.{" "}
+                  <span style={{color:"#D97706",fontWeight:600}}>Your name will be visible to admins and may be revealed to all voters.</span>
+                </p>
                 <div style={{display:"flex",flexDirection:"column",gap:15}}>
-                  <div>
-                    <label style={{fontSize:13,fontWeight:600,color:"#4A5568",display:"block",marginBottom:6}}>Your Name</label>
-                    <input className="inp" placeholder="e.g. Chris Walsh" value={form.who} onChange={e=>setForm(f=>({...f,who:e.target.value}))}/>
-                  </div>
                   <div>
                     <label style={{fontSize:13,fontWeight:600,color:"#4A5568",display:"block",marginBottom:6}}>Proposed Product Name</label>
                     <input className="inp" placeholder="e.g. Blink Sentinel" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
@@ -352,11 +369,8 @@ export default function App() {
               <div>
                 <div className="card" style={{marginBottom:20}}>
                   <h2 style={{margin:"0 0 6px",fontSize:20,fontWeight:700,color:BD}}>Cast Your Medals</h2>
-                  <p style={{color:"#6B7A99",margin:"0 0 16px",fontSize:14}}>Give out one 🥇 Gold (3pts), one 🥈 Silver (2pts), and one 🥉 Bronze (1pt). Each medal can only go to one entry.</p>
-                  <div>
-                    <label style={{fontSize:13,fontWeight:600,color:"#4A5568",display:"block",marginBottom:6}}>Your Name</label>
-                    <input className="inp" placeholder="Enter your name" value={vname} onChange={e=>setVname(e.target.value)} style={{maxWidth:280}}/>
-                  </div>
+                  <p style={{color:"#6B7A99",margin:"0 0 4px",fontSize:14}}>Give out one 🥇 Gold (3pts), one 🥈 Silver (2pts), and one 🥉 Bronze (1pt). Each medal can only go to one entry.</p>
+                  <p style={{color:"#9CA3AF",margin:"0 0 0",fontSize:13}}>Voting as <strong style={{color:BD}}>{currentUser}</strong></p>
                   <div style={{marginTop:14,fontSize:14,color:"#6B7A99"}}>
                     Medals assigned: <strong style={{color:BD}}>{Object.keys(myV).length}/3</strong>
                     {Object.keys(myV).length===3 && <span style={{color:"#16A34A",marginLeft:10,fontWeight:600}}>✓ Ready to submit</span>}
@@ -394,8 +408,7 @@ export default function App() {
               <div className="card" style={{textAlign:"center",padding:"56px 28px"}}>
                 <div style={{fontSize:48,marginBottom:12}}>🏅</div>
                 <h2 style={{margin:"0 0 8px",fontSize:22,color:BD}}>Votes recorded!</h2>
-                <p style={{color:"#6B7A99",margin:"0 0 22px",fontSize:14}}>{allV.length} {allV.length===1?"person has":"people have"} voted so far.</p>
-                <button className="btn bg" onClick={()=>{setVoteDone(false);setMyV({});setVname("");}}>Vote again (different person)</button>
+                <p style={{color:"#6B7A99",margin:0,fontSize:14}}>{allV.length} {allV.length===1?"person has":"people have"} voted so far. Results will be revealed when voting closes.</p>
               </div>
             )}
           </div>
@@ -403,9 +416,21 @@ export default function App() {
 
         {phase==="results" && (
           <div>
-            <div style={{marginBottom:24}}>
-              <h2 style={{margin:"0 0 4px",fontSize:26,fontWeight:700,color:"white"}}>🏆 Results</h2>
-              <p style={{color:"rgba(255,255,255,0.45)",margin:0,fontSize:14}}>{allV.length} {allV.length===1?"vote":"votes"} cast · {subs.length} entries</p>
+            <style>{`
+              @media print {
+                body { background: white !important; }
+                .no-print { display: none !important; }
+                .card { box-shadow: none !important; border: 1px solid #E0E6F0 !important; }
+              }
+            `}</style>
+            <div style={{marginBottom:24,display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+              <div>
+                <h2 style={{margin:"0 0 4px",fontSize:26,fontWeight:700,color:"white"}}>🏆 Results</h2>
+                <p style={{color:"rgba(255,255,255,0.45)",margin:0,fontSize:14}}>{allV.length} {allV.length===1?"vote":"votes"} cast · {subs.length} entries</p>
+              </div>
+              <button className="no-print" onClick={()=>window.print()} style={{background:"white",border:"none",borderRadius:10,padding:"10px 20px",fontSize:14,fontWeight:600,cursor:"pointer",color:BD,fontFamily:"inherit",display:"flex",alignItems:"center",gap:8}}>
+                🖨️ Print / Save PDF
+              </button>
             </div>
             {tally.length===0 ? (
               <div className="card" style={{textAlign:"center",padding:48}}>
