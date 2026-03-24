@@ -2,11 +2,14 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import { db } from './firebase.js'
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore'
 
 const ADMIN_EMAIL = 'chris.lee@blinkparametric.com';
 const ALLOWED_DOMAIN = 'blinkparametric.com';
 const SESSION_KEY = 'blink-naming-user';
+
+// Expose real-time listener helpers for App.jsx
+window.__blinkListeners = { onSnapshot, doc, db };
 
 // ── Storage API (Firestore) ──────────────────────────────────────────────────
 window.storage = {

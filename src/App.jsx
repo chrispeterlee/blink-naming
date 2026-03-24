@@ -85,26 +85,37 @@ export default function App({ currentUser = "", isAdmin = false }) {
   useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t);},[]);
 
   useEffect(()=>{
-    (async()=>{
-      try {
-        const a=await window.storage.get(SK_TIMELINE); if(a) setTl(JSON.parse(a.value));
-        const b=await window.storage.get(SK_SUBMISSIONS); if(b) setSubs(JSON.parse(b.value));
-        const c=await window.storage.get(SK_VOTES); if(c) {
-          const votes = JSON.parse(c.value);
-          setAllV(votes);
-          // Check if this user already voted
-          const myPriorVote = votes.find(v => v.voter === currentUser);
-          if (myPriorVote) setVoteDone(true);
-        }
-        const d=await window.storage.get(SK_REVEAL); if(d) setReveal(JSON.parse(d.value));
-        // Check if user already submitted
-        const b2=await window.storage.get(SK_SUBMISSIONS); if(b2) {
-          const existingSubs = JSON.parse(b2.value);
-          if (existingSubs.some(s => s.who === currentUser)) setSubDone(true);
-        }
-      } catch(e){}
-      setLoading(false);
-    })();
+    if (!window.__blinkListeners) {
+      // fallback one-time load
+      (async()=>{
+        try {
+          const a=await window.storage.get(SK_TIMELINE); if(a) setTl(JSON.parse(a.value));
+          const b=await window.storage.get(SK_SUBMISSIONS); if(b){const s=JSON.parse(b.value);setSubs(s);if(s.some(x=>x.who===currentUser))setSubDone(true);}
+          const c=await window.storage.get(SK_VOTES); if(c){const v=JSON.parse(c.value);setAllV(v);if(v.find(x=>x.voter===currentUser))setVoteDone(true);}
+          const d=await window.storage.get(SK_REVEAL); if(d) setReveal(JSON.parse(d.value));
+        } catch(e){}
+        setLoading(false);
+      })();
+      return;
+    }
+    const {onSnapshot, doc, db} = window.__blinkListeners;
+    let loaded=0;
+    const done=()=>{ loaded++; if(loaded>=4) setLoading(false); };
+    const unsubs=[
+      onSnapshot(doc(db,'blink-naming',SK_TIMELINE), s=>{
+        if(s.exists()) setTl(JSON.parse(s.data().value)); else setTl(null); done();
+      }),
+      onSnapshot(doc(db,'blink-naming',SK_SUBMISSIONS), s=>{
+        if(s.exists()){const v=JSON.parse(s.data().value);setSubs(v);if(v.some(x=>x.who===currentUser))setSubDone(true);}else setSubs([]); done();
+      }),
+      onSnapshot(doc(db,'blink-naming',SK_VOTES), s=>{
+        if(s.exists()){const v=JSON.parse(s.data().value);setAllV(v);if(v.find(x=>x.voter===currentUser))setVoteDone(true);}else setAllV([]); done();
+      }),
+      onSnapshot(doc(db,'blink-naming',SK_REVEAL), s=>{
+        if(s.exists()) setReveal(JSON.parse(s.data().value)); done();
+      }),
+    ];
+    return ()=>unsubs.forEach(u=>u());
   },[]);
 
   const toast2 = (msg,type="ok") => { setToast({msg,type}); setTimeout(()=>setToast(null),3500); };
