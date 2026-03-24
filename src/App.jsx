@@ -317,8 +317,15 @@ export default function App({ currentUser = "", isAdmin = false }) {
             <Countdown label="Submissions close in" endsAt={tl.se} color={BB}/>
             <div style={{background:"linear-gradient(135deg,#EEF3FF,#F5F8FF)",border:"1.5px solid #C7D7FF",borderRadius:14,padding:"20px 24px",marginBottom:24}}>
               <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:BB,marginBottom:8}}>📋 Naming Brief</div>
-              <p style={{margin:"0 0 10px",fontSize:14,color:"#2D3748",lineHeight:1.65}}>We are replacing <strong>CyberScan</strong> (trademarked in insurance) with a new name for our <strong>dark web monitoring product</strong>. The product lets users register their personal details, then automatically monitors the dark web and alerts them the moment their data surfaces anywhere it should not.</p>
-              <p style={{margin:0,fontSize:14,color:"#2D3748",lineHeight:1.65}}>The best names will work as a <strong>Blink sub-brand</strong>, convey vigilance and instant alerting, and avoid generic cyber words like Shield, Guard, or Watch. Think: <em>we are watching the shadows so you do not have to.</em></p>
+              <p style={{margin:"0 0 10px",fontSize:14,color:"#2D3748",lineHeight:1.65}}>We're naming a new <strong>Blink cyber protection sub-brand</strong> — not just a product name, but a brand that will grow. The first thing under it will be our dark web monitoring product (currently called CyberScan, which is trademarked and needs replacing), but over time this brand will cover a broader range of cyber protection for individuals and small businesses: monitoring across the dark web and surface web, and potentially other cyber threats we haven't built yet.</p>
+              <p style={{margin:"0 0 10px",fontSize:14,color:"#2D3748",lineHeight:1.65}}>Think of it the way "Blink" works — it doesn't say exactly what the product does, but it feels right and leaves room to grow. We want something similar here: a Blink sub-brand that feels protective and vigilant without being so specific that it dates itself.</p>
+              <p style={{margin:"0 0 6px",fontSize:14,color:"#2D3748",lineHeight:1.65,fontWeight:600}}>What makes a good name:</p>
+              <ul style={{margin:0,paddingLeft:20,fontSize:14,color:"#2D3748",lineHeight:1.8}}>
+                <li>Works as a Blink sub-brand (e.g. "Blink ____")</li>
+                <li>Suggests protection, awareness, or watching — without tired words like Shield, Guard, Watch, or Protect</li>
+                <li>Feels premium and a little abstract — high-level enough to stretch as the product range expands</li>
+                <li>Short enough to say naturally alongside "Blink"</li>
+              </ul>
             </div>
 
             {!subDone ? (
